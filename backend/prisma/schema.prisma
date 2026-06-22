@@ -1,0 +1,55 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               Int             @id @default(autoincrement())
+  email            String          @unique
+  name             String?
+  password         String
+  picture          String?
+  latitude         Float?
+  longitude        Float?
+  
+  // Relations for Posts (Timeline)
+  authoredPosts    Post[]          @relation("AuthoredPosts")
+  receivedPosts    Post[]          @relation("ReceivedPosts")
+
+  // Explicit relations for Friend Requests
+  sentRequests     FriendRequest[] @relation("SentRequests")
+  receivedRequests FriendRequest[] @relation("ReceivedRequests")
+}
+
+model FriendRequest {
+  id         Int    @id @default(autoincrement())
+  senderId   Int
+  receiverId Int
+  status     String @default("PENDING")
+
+  // Named relation fields linking back to the User model
+  sender     User   @relation("SentRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User   @relation("ReceivedRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+}
+
+model Post {
+  id          Int      @id @default(autoincrement())
+  imageUrl    String
+  caption     String?
+  location    String   @default("Unknown Location")
+  latitude    Float?
+  longitude   Float?
+  createdAt   DateTime @default(now())
+  authorId    Int
+  recipientId Int
+
+  // Relations mapping authors and recipients
+  author      User     @relation("AuthoredPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  recipient   User     @relation("ReceivedPosts", fields: [recipientId], references: [id], onDelete: Cascade)
+}
